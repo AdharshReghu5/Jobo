@@ -1,21 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String name = "";
+  String bio = "";
+  String joboId = "";
+
+  @override
+  void initState() {
+    super.initState();
+    getUserData();
+  }
+
+  Future<void> getUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        name = doc['name'] ?? "";
+        bio = doc['bio'] ?? "";
+        joboId = doc['joboId'] ?? "";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF000000),
+
       appBar: AppBar(
+        backgroundColor: Colors.black,
         elevation: 0,
-        backgroundColor: const Color(0xFF121212),
-        title: const Text(
-          "adharsh_reghu",
-          style: TextStyle(fontWeight: FontWeight.bold),
+
+        title: Text(
+          joboId.isEmpty ? "profile" : "@$joboId",
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: const [
-          Icon(Icons.menu),
-          SizedBox(width: 12),
+
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+
+            onSelected: (value) async {
+              if (value == "logout") {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pop(context);
+              }
+            },
+
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
+
+              const PopupMenuItem(value: "settings", child: Text("Settings")),
+
+              const PopupMenuDivider(),
+
+              const PopupMenuItem(
+                value: "logout",
+                child: Text("Log Out", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
         ],
       ),
 
@@ -23,27 +83,25 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 20),
 
-            // 🔹 TOP PROFILE SECTION
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+
               child: Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundImage: NetworkImage(
-                      "https://instagram.fcok6-2.fna.fbcdn.net/v/t51.2885-19/504868058_17990879000807084_9064582394234523504_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=instagram.fcok6-2.fna.fbcdn.net&_nc_cat=108&_nc_oc=Q6cZ2QEKtSuThqiXdXxyJCwZVy4j60-4bHBZ-IeBMLtqDBDUs5LZANxPZitC64360Y5y7KQ&_nc_ohc=R7uH05Ki_nIQ7kNvwFpagYf&_nc_gid=1sQoTVlZ4bkeJIBxJ0ykHw&edm=AP4sbd4BAAAA&ccb=7-5&oh=00_AfmgMEKh8YhuCTnGCOq55oXr8ZM9wl1_zZqht7m6ku9lvw&oe=6959BCBB&_nc_sid=7a9f4b",
-                    ),
-                  ),
+                  const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
 
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 25),
 
                   Expanded(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: const [
                         ProfileStat(count: "12", label: "Posts"),
+
                         ProfileStat(count: "1.2K", label: "Followers"),
+
                         ProfileStat(count: "340", label: "Following"),
                       ],
                     ),
@@ -52,63 +110,83 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            // 🔹 NAME & BIO
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            const SizedBox(height: 14),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Adharsh Reghu",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    name.isEmpty ? "Loading..." : name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                  SizedBox(height: 4),
+
+                  const SizedBox(height: 2),
+
                   Text(
-                    "Computer Engineer\nAvailable for work",
-                    style: TextStyle(color: Colors.grey),
+                    joboId.isEmpty ? "" : "@$joboId",
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
+
+                  const SizedBox(height: 4),
+
+                  if (bio.isNotEmpty)
+                    Text(
+                      bio,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
                 ],
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // 🔹 EDIT PROFILE BUTTON
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 40),
-                  side: BorderSide(color: Colors.grey.shade700),
+
+              child: SizedBox(
+                width: double.infinity,
+                height: 36,
+
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade700),
+                  ),
+
+                  onPressed: () {},
+
+                  child: const Text("Edit Profile"),
                 ),
-                onPressed: () {},
-                child: const Text("Edit Profile"),
               ),
             ),
 
             const SizedBox(height: 20),
 
-            // 🔹 DIVIDER
             Divider(color: Colors.grey[800]),
 
-            // 🔹 POSTS GRID
             GridView.builder(
               padding: EdgeInsets.zero,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+
               itemCount: 12,
+
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 2,
                 mainAxisSpacing: 2,
               ),
+
               itemBuilder: (context, index) {
                 return Container(
                   color: const Color(0xFF1E1E1E),
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: Colors.grey,
-                  ),
+
+                  child: const Icon(Icons.image_outlined, color: Colors.grey),
                 );
               },
             ),
@@ -118,15 +196,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
 class ProfileStat extends StatelessWidget {
   final String count;
   final String label;
 
-  const ProfileStat({
-    super.key,
-    required this.count,
-    required this.label,
-  });
+  const ProfileStat({super.key, required this.count, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -134,19 +209,12 @@ class ProfileStat extends StatelessWidget {
       children: [
         Text(
           count,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
+
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 13,
-          ),
-        ),
+
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
       ],
     );
   }
