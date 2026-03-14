@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1075240851189",
+    "project_id": "jobo-bfa19",
+    "storage_bucket": "jobo-bfa19.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1075240851189:android:e9316c6e1e3db2b4d557bc",
+        "android_client_info": {
+          "package_name": "com.example.jobo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfDUxiTNFoxdz83HbMhndfNO3KWQnaYSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
