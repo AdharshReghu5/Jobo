@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'login_screen.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -10,66 +12,67 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String name = "";
-  String bio = "";
-  String joboId = "";
 
-  @override
-  void initState() {
-    super.initState();
-    getUserData();
-  }
-
-  Future<void> getUserData() async {
+  Future<DocumentSnapshot> getUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
 
-    DocumentSnapshot doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
+    return await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user!.uid)
         .get();
-
-    if (doc.exists) {
-      setState(() {
-        name = doc['name'] ?? "";
-        bio = doc['bio'] ?? "";
-        joboId = doc['joboId'] ?? "";
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
+        title: FutureBuilder<DocumentSnapshot>(
+          future: getUserData(),
+          builder: (context, snapshot) {
 
-        title: Text(
-          joboId.isEmpty ? "profile" : "@$joboId",
-          style: const TextStyle(fontWeight: FontWeight.bold),
+            if (!snapshot.hasData) {
+              return const Text("...");
+            }
+
+            String username = snapshot.data!['username'] ?? "";
+
+            return Text(
+              username.isEmpty ? "profile" : username,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20, // 🔥 Bigger username
+              ),
+            );
+          },
         ),
 
         actions: [
+
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.menu),
 
             onSelected: (value) async {
               if (value == "logout") {
+
                 await FirebaseAuth.instance.signOut();
-                Navigator.pop(context);
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               }
             },
 
             itemBuilder: (context) => [
               const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
-
               const PopupMenuItem(value: "settings", child: Text("Settings")),
-
               const PopupMenuDivider(),
-
               const PopupMenuItem(
                 value: "logout",
                 child: Text("Log Out", style: TextStyle(color: Colors.red)),
@@ -79,119 +82,148 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: getUserData(),
+        builder: (context, snapshot) {
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              child: Row(
-                children: [
-                  const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
+          var data = snapshot.data!;
 
-                  const SizedBox(width: 25),
+          String username = data['username'] ?? "";
+          String name = data['name'] ?? "";
+          String bio = data['bio'] ?? "";
+          String imageUrl = data['profileImage'] ?? "";
 
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        ProfileStat(count: "12", label: "Posts"),
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-                        ProfileStat(count: "1.2K", label: "Followers"),
+                const SizedBox(height: 20),
 
-                        ProfileStat(count: "340", label: "Following"),
-                      ],
-                    ),
+                // 🔥 PROFILE ROW
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                  child: Row(
+                    children: [
+
+                      CircleAvatar(
+                        radius: 45,
+                        backgroundColor: theme.dividerColor,
+                        backgroundImage:
+                            imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                        child: imageUrl.isEmpty
+                            ? const Icon(Icons.person, size: 40)
+                            : null,
+                      ),
+
+                      const SizedBox(width: 25),
+
+                      const Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            ProfileStat(count: "0", label: "Posts"),
+                            ProfileStat(count: "0", label: "Followers"),
+                            ProfileStat(count: "0", label: "Following"),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name.isEmpty ? "Loading..." : name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Text(
-                    joboId.isEmpty ? "" : "@$joboId",
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  if (bio.isNotEmpty)
-                    Text(
-                      bio,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-
-              child: SizedBox(
-                width: double.infinity,
-                height: 36,
-
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade700),
-                  ),
-
-                  onPressed: () {},
-
-                  child: const Text("Edit Profile"),
                 ),
-              ),
+
+                const SizedBox(height: 16),
+
+                // 🔥 NAME + BIO
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16, // 🔥 Bigger name
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      if (bio.isNotEmpty)
+                        Text(
+                          bio,
+                          style: const TextStyle(
+                            color: Color(0xFFA8A8A8),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 🔥 EDIT PROFILE BUTTON (FIXED STYLE)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 36,
+
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Color(0xFF3797EF), // 🔥 Blue border
+                        ),
+                        foregroundColor: const Color(0xFF3797EF), // 🔥 Blue text
+                      ),
+                      onPressed: () {},
+                      child: const Text("Edit Profile"),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Divider(color: theme.dividerColor),
+
+                // 🔥 GRID
+                GridView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+
+                  itemCount: 12,
+
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 2,
+                  ),
+
+                  itemBuilder: (context, index) {
+                    return Container(
+                      color: const Color(0xFF1E1E1E),
+                      child: const Icon(
+                        Icons.image_outlined,
+                        color: Color(0xFFA8A8A8),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-
-            const SizedBox(height: 20),
-
-            Divider(color: Colors.grey[800]),
-
-            GridView.builder(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-
-              itemCount: 12,
-
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-
-              itemBuilder: (context, index) {
-                return Container(
-                  color: const Color(0xFF1E1E1E),
-
-                  child: const Icon(Icons.image_outlined, color: Colors.grey),
-                );
-              },
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -209,12 +241,20 @@ class ProfileStat extends StatelessWidget {
       children: [
         Text(
           count,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Colors.white,
+          ),
         ),
-
         const SizedBox(height: 4),
-
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFA8A8A8),
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }

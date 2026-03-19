@@ -35,11 +35,26 @@ class _LoginScreenState extends State<LoginScreen> {
         loading = true;
       });
 
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
+      // 🔥 Refresh user to get latest verification status
+      await userCredential.user!.reload();
+
+      // ❗ Check email verification
+      if (!userCredential.user!.emailVerified) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please verify your email first")),
+        );
+
+        return;
+      }
+
+      // ✅ Login successful → go to MainScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
@@ -59,6 +74,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Something went wrong")),
+      );
 
     } finally {
 
