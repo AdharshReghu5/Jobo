@@ -15,7 +15,6 @@ class SetupProfileScreen extends StatefulWidget {
 }
 
 class _SetupProfileScreenState extends State<SetupProfileScreen> {
-
   final TextEditingController username = TextEditingController();
   final TextEditingController name = TextEditingController();
   final TextEditingController bio = TextEditingController();
@@ -72,10 +71,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
 
   // 💾 Save Profile
   Future<void> saveProfile() async {
-
     String userName = username.text.trim().toLowerCase();
-
-    // 🔴 VALIDATION
 
     if (userName.isEmpty) {
       showMessage("Enter username");
@@ -109,7 +105,6 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
 
       var user = FirebaseAuth.instance.currentUser;
 
-      // 🔥 Check username uniqueness
       bool taken = await isUsernameTaken(userName);
 
       if (taken) {
@@ -118,10 +113,8 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         return;
       }
 
-      // ☁️ Upload image
       String imageUrl = await uploadImage(user!.uid);
 
-      // 💾 Save data
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
@@ -136,12 +129,10 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         "createdAt": FieldValue.serverTimestamp(),
       });
 
-      // 🚀 Go to MainScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
-
     } catch (e) {
       showMessage("Something went wrong");
     } finally {
@@ -166,95 +157,98 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFF080808),
+      resizeToAvoidBottomInset: true,
 
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
 
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Setup Profile",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
 
-          children: [
+                  const SizedBox(height: 30),
 
-            const Text(
-              "Setup Profile",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                  // 📸 Profile Image
+                  GestureDetector(
+                    onTap: pickImage,
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey[800],
+                      backgroundImage:
+                          image != null ? FileImage(image!) : null,
+                      child: image == null
+                          ? const Icon(Icons.add_a_photo,
+                              color: Colors.white)
+                          : null,
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  TextField(
+                    controller: username,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: inputStyle("Username"),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  TextField(
+                    controller: name,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: inputStyle("Name"),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: inputStyle("Phone Number"),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  TextField(
+                    controller: bio,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: inputStyle("Bio"),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
+                      onPressed: loading ? null : saveProfile,
+                      child: loading
+                          ? const CircularProgressIndicator(
+                              color: Colors.white)
+                          : const Text("Continue"),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            // 📸 Profile Image
-            GestureDetector(
-              onTap: pickImage,
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.grey[800],
-                backgroundImage:
-                    image != null ? FileImage(image!) : null,
-                child: image == null
-                    ? const Icon(Icons.add_a_photo, color: Colors.white)
-                    : null,
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            TextField(
-              controller: username,
-              style: const TextStyle(color: Colors.white),
-              decoration: inputStyle("Username"),
-            ),
-
-            const SizedBox(height: 15),
-
-            TextField(
-              controller: name,
-              style: const TextStyle(color: Colors.white),
-              decoration: inputStyle("Name"),
-            ),
-
-            const SizedBox(height: 15),
-
-            TextField(
-              controller: phone,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: inputStyle("Phone Number"),
-            ),
-
-            const SizedBox(height: 15),
-
-            TextField(
-              controller: bio,
-              style: const TextStyle(color: Colors.white),
-              decoration: inputStyle("Bio"),
-            ),
-
-            const SizedBox(height: 25),
-
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                ),
-
-                onPressed: loading ? null : saveProfile,
-
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Continue"),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
