@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login_screen.dart';
+import 'package:jobo/screens/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,19 +13,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
   Future<DocumentSnapshot> getUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
 
-    return await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user!.uid)
-        .get();
+    return FirebaseFirestore.instance.collection("users").doc(user!.uid).get();
+  }
+
+  // 🔥 REFRESH FUNCTION
+  void refresh() {
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -34,7 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: FutureBuilder<DocumentSnapshot>(
           future: getUserData(),
           builder: (context, snapshot) {
-
             if (!snapshot.hasData) {
               return const Text("...");
             }
@@ -43,22 +43,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             return Text(
               username.isEmpty ? "profile" : username,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 20, // 🔥 Bigger username
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
             );
           },
         ),
 
         actions: [
-
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
 
             onSelected: (value) async {
-              if (value == "logout") {
+              // 🔥 EDIT PROFILE FROM MENU
+              if (value == "edit") {
+                final updated = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                );
 
+                if (updated == true) {
+                  refresh();
+                }
+              }
+              // 🔥 LOGOUT
+              else if (value == "logout") {
                 await FirebaseAuth.instance.signOut();
 
                 Navigator.pushAndRemoveUntil(
@@ -85,7 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: FutureBuilder<DocumentSnapshot>(
         future: getUserData(),
         builder: (context, snapshot) {
-
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -101,7 +107,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 const SizedBox(height: 20),
 
                 // 🔥 PROFILE ROW
@@ -110,12 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   child: Row(
                     children: [
-
                       CircleAvatar(
                         radius: 45,
                         backgroundColor: theme.dividerColor,
-                        backgroundImage:
-                            imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                        backgroundImage: imageUrl.isNotEmpty
+                            ? NetworkImage(imageUrl)
+                            : null,
                         child: imageUrl.isEmpty
                             ? const Icon(Icons.person, size: 40)
                             : null,
@@ -146,13 +151,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       Text(
                         name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16, // 🔥 Bigger name
+                          fontSize: 16,
                           color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // 🔥 USERNAME (optional nice UI)
+                      Text(
+                        "@$username",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
                         ),
                       ),
 
@@ -161,9 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (bio.isNotEmpty)
                         Text(
                           bio,
-                          style: const TextStyle(
-                            color: Color(0xFFA8A8A8),
-                          ),
+                          style: const TextStyle(color: Color(0xFFA8A8A8)),
                         ),
                     ],
                   ),
@@ -171,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 12),
 
-                // 🔥 EDIT PROFILE BUTTON (FIXED STYLE)
+                // 🔥 EDIT PROFILE BUTTON
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
 
@@ -181,12 +194,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFF3797EF), // 🔥 Blue border
-                        ),
-                        foregroundColor: const Color(0xFF3797EF), // 🔥 Blue text
+                        side: const BorderSide(color: Color(0xFF3797EF)),
+                        foregroundColor: const Color(0xFF3797EF),
                       ),
-                      onPressed: () {},
+
+                      onPressed: () async {
+                        final updated = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfileScreen(),
+                          ),
+                        );
+
+                        if (updated == true) {
+                          refresh();
+                        }
+                      },
+
                       child: const Text("Edit Profile"),
                     ),
                   ),
@@ -250,10 +274,7 @@ class ProfileStat extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFFA8A8A8),
-            fontSize: 13,
-          ),
+          style: const TextStyle(color: Color(0xFFA8A8A8), fontSize: 13),
         ),
       ],
     );
