@@ -2,21 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProductFeedCard extends StatelessWidget {
-
-  final String seller;
+  final String userName;
+  final String profileImage;
   final String productName;
   final String price;
-  final String caption;
-  final String image;
+  final String description;
+  final String imageUrl;
   final String phone;
 
   const ProductFeedCard({
     super.key,
-    required this.seller,
+    required this.userName,
+    required this.profileImage,
     required this.productName,
     required this.price,
-    required this.caption,
-    required this.image,
+    required this.description,
+    required this.imageUrl,
     required this.phone,
   });
 
@@ -32,72 +33,76 @@ class ProductFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
 
-        // HEADER
+        // 👤 HEADER
         Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-
-              const CircleAvatar(radius: 18),
+              CircleAvatar(
+                radius: 18,
+                backgroundImage:
+                    profileImage.isNotEmpty ? NetworkImage(profileImage) : null,
+                child: profileImage.isEmpty
+                    ? const Icon(Icons.person)
+                    : null,
+              ),
               const SizedBox(width: 10),
 
               Text(
-                seller,
+                userName,
                 style: const TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
               const Spacer(),
-
-              const Icon(Icons.more_vert, color: Colors.white)
+              const Icon(Icons.more_vert),
             ],
           ),
         ),
 
-        // PRODUCT IMAGE
-        Image.network(
-          image,
-          height: 250,
-          width: double.infinity,
-          fit: BoxFit.cover,
-        ),
+        // 🖼 IMAGE (OPTIONAL)
+        if (imageUrl.isNotEmpty)
+          AspectRatio(
+            aspectRatio: 3 / 4, // 🔥 vertical
+            child: Image.network(
+              imageUrl,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
 
-        // ACTION BUTTONS
+        // ⚡ ACTIONS
         Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-
-              const Icon(Icons.favorite_border, color: Colors.white),
+              const Icon(Icons.favorite_border),
               const SizedBox(width: 20),
 
               IconButton(
                 onPressed: whatsapp,
-                icon: const Icon(Icons.message, color: Colors.white),
+                icon: const Icon(Icons.message),
               ),
 
               IconButton(
                 onPressed: call,
-                icon: const Icon(Icons.call, color: Colors.white),
+                icon: const Icon(Icons.call),
               ),
             ],
           ),
         ),
 
-        // PRODUCT NAME
+        // 📦 PRODUCT NAME
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             productName,
             style: const TextStyle(
-              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -105,30 +110,24 @@ class ProductFeedCard extends StatelessWidget {
 
         const SizedBox(height: 4),
 
-        // PRICE
+        // 💰 PRICE
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            price,
+            "₹ $price",
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
             ),
           ),
         ),
 
         const SizedBox(height: 6),
 
-        // CAPTION
+        // 📝 DESCRIPTION
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            caption,
-            style: const TextStyle(
-              color: Colors.white70,
-            ),
-          ),
+          child: Text(description),
         ),
 
         const SizedBox(height: 15),
