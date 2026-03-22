@@ -20,7 +20,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return FirebaseFirestore.instance.collection("users").doc(user!.uid).get();
   }
 
-  // 🔥 POSTS COUNT
   Widget postCountWidget() {
     String uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -56,7 +55,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 POSTS GRID + EMPTY UI
   Widget buildUserPosts() {
     String uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -162,64 +160,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
+    return FutureBuilder<DocumentSnapshot>(
+      future: getUserData(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: const Text("Profile"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () async {
-              String? value = await showMenu(
-                context: context,
-                position: const RelativeRect.fromLTRB(100, 80, 0, 0),
-                items: const [
-                  PopupMenuItem(value: "edit", child: Text("Edit Profile")),
-                  PopupMenuItem(value: "logout", child: Text("Logout")),
-                ],
-              );
+        var data = snapshot.data!.data() as Map<String, dynamic>;
 
-              if (value == "edit") {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                );
-              } else if (value == "logout") {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
+        String name = data['name'] ?? "";
+        String username = data['username'] ?? ""; // 🔥 THIS IS NEW
+        String bio = data['bio'] ?? "";
+        String image = data['profileImage'] ?? "";
+
+        return Scaffold(
+          backgroundColor: Colors.black,
+
+          // 🔥 USERNAME AT TOP (FIXED)
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            elevation: 0,
+            title: Text(
+              username,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () async {
+                  String? value = await showMenu(
+                    context: context,
+                    position: const RelativeRect.fromLTRB(100, 80, 0, 0),
+                    items: const [
+                      PopupMenuItem(value: "edit", child: Text("Edit Profile")),
+                      PopupMenuItem(value: "logout", child: Text("Logout")),
+                    ],
+                  );
+
+                  if (value == "edit") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const EditProfileScreen(),
+                      ),
+                    );
+                  } else if (value == "logout") {
+                    await FirebaseAuth.instance.signOut();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
+              ),
+            ],
           ),
-        ],
-      ),
 
-      body: FutureBuilder<DocumentSnapshot>(
-        future: getUserData(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          var data = snapshot.data!.data() as Map<String, dynamic>;
-
-          String name = data['name'] ?? "";
-          String bio = data['bio'] ?? "";
-          String image = data['profileImage'] ?? "";
-
-          return SingleChildScrollView(
+          body: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
 
-                // 🔥 PROFILE + STATS
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -286,7 +293,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 12),
 
-                // 🔥 NAME + BIO
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -311,7 +317,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 12),
 
-                // 🔥 EDIT BUTTON (UPDATED ONLY THIS)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SizedBox(
@@ -319,11 +324,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 38,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.grey, width: 0.6),
+                        side: const BorderSide(color: Colors.blue, width: 1),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        backgroundColor: Colors.transparent,
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -336,9 +340,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: const Text(
                         "Edit Profile",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.blue,
                           fontWeight: FontWeight.w500,
-                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -350,9 +353,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 buildUserPosts(),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
