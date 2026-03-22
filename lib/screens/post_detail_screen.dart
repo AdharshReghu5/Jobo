@@ -13,131 +13,131 @@ class PostDetailScreen extends StatelessWidget {
     required this.collection,
   });
 
-  Future<void> deletePost(BuildContext context) async {
-    await FirebaseFirestore.instance
-        .collection(collection)
-        .doc(postId)
-        .delete();
-
-    Navigator.pop(context);
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Post deleted")));
-  }
-
   @override
   Widget build(BuildContext context) {
     String imageUrl = postData['imageUrl'] ?? "";
+    String description = postData['description'] ?? "";
+    String title = postData['productName'] ?? postData['jobTitle'] ?? "Post";
+
+    String userName = postData['userName'] ?? "User";
+    String userImage = postData['userProfileImage'] ?? "";
 
     return Scaffold(
       backgroundColor: Colors.black,
 
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        actions: [
-          PopupMenuButton(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'delete') {
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text("Delete Post"),
-                    content: const Text("Are you sure you want to delete?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          deletePost(context);
-                        },
-                        child: const Text(
+      body: SafeArea(
+        child: ListView(
+          children: [
+            // 🔥 TOP USER BAR (LIKE INSTAGRAM)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundImage: userImage.isNotEmpty
+                        ? NetworkImage(userImage)
+                        : null,
+                    child: userImage.isEmpty
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // 🔥 THREE DOT MENU
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    onSelected: (value) async {
+                      if (value == "delete") {
+                        await FirebaseFirestore.instance
+                            .collection(collection)
+                            .doc(postId)
+                            .delete();
+
+                        Navigator.pop(context);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: "delete",
+                        child: Text(
                           "Delete",
                           style: TextStyle(color: Colors.red),
                         ),
                       ),
                     ],
                   ),
-                );
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'delete', child: Text("Delete")),
-            ],
-          ),
-        ],
-      ),
+                ],
+              ),
+            ),
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🔥 IMAGE
+            // 🔥 POST IMAGE
             if (imageUrl.isNotEmpty)
               Image.network(
                 imageUrl,
                 width: double.infinity,
-                height: 300,
                 fit: BoxFit.cover,
               ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
+            // 🔥 ICON ROW
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 👤 USER NAME
-                  Text(
-                    postData['userName'] ?? "User",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: const [
+                  Icon(Icons.favorite_border, color: Colors.white, size: 28),
+                  SizedBox(width: 18),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.white,
+                    size: 26,
                   ),
-
-                  const SizedBox(height: 10),
-
-                  // 🧾 JOB POST
-                  if (collection == "jobs") ...[
-                    Text(
-                      postData['jobTitle'] ?? "",
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    Text(
-                      "Salary: ${postData['salary']}",
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    Text(
-                      postData['description'] ?? "",
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ],
-
-                  // 🛍 PRODUCT POST
-                  if (collection == "products") ...[
-                    Text(
-                      postData['productName'] ?? "",
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    Text(
-                      "₹${postData['price']}",
-                      style: const TextStyle(color: Colors.green),
-                    ),
-                    Text(
-                      postData['description'] ?? "",
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ],
+                  SizedBox(width: 18),
+                  Icon(Icons.call, color: Colors.white, size: 26),
                 ],
               ),
             ),
+
+            const SizedBox(height: 12),
+
+            // 🔥 TITLE
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            // 🔥 DESCRIPTION
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                description,
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
+              ),
+            ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
