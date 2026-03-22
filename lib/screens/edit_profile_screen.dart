@@ -86,9 +86,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return RegExp(r'^[0-9]{10}$').hasMatch(phone);
   }
 
+  // 🔥 FIXED USERNAME CHECK (CASE SAFE)
+  Future<bool> isUsernameTaken(String newUsername, String uid) async {
+    var result = await FirebaseFirestore.instance.collection("users").get();
+
+    String checkName = newUsername.toLowerCase();
+
+    for (var doc in result.docs) {
+      var data = doc.data();
+
+      String existing = (data['username'] ?? "").toString().toLowerCase();
+
+      if (existing == checkName && doc.id != uid) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   // 💾 SAVE PROFILE
   Future<void> saveProfile() async {
-    if (username.text.trim().isEmpty) {
+    String newUsername = username.text.trim().toLowerCase();
+
+    if (newUsername.isEmpty) {
       showMessage("Username required");
       return;
     }
@@ -108,20 +129,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
 
-      String newImageUrl = await uploadImage(user!.uid);
+      // 🔥 CHECK USERNAME
+      bool taken = await isUsernameTaken(newUsername, user!.uid);
+
+      if (taken) {
+        setState(() => loading = false);
+        showMessage("Username already taken");
+        return;
+      }
+
+      String newImageUrl = await uploadImage(user.uid);
 
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
           .update({
-            "username": username.text.trim().toLowerCase(),
+            "username": newUsername,
             "name": name.text.trim(),
             "bio": bio.text.trim(),
             "phone": phone.text.trim(),
             "profileImage": newImageUrl,
           });
 
-      Navigator.pop(context, true); // 🔥 refresh profile
+      Navigator.pop(context, true);
     } catch (e) {
       showMessage("Update failed");
     } finally {
@@ -168,11 +198,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 🔥 PROFILE IMAGE
+                    // PROFILE IMAGE
                     GestureDetector(
                       onTap: pickImage,
                       child: CircleAvatar(

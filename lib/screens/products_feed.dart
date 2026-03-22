@@ -13,7 +13,6 @@ class ProductsFeed extends StatelessWidget {
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -27,8 +26,7 @@ class ProductsFeed extends StatelessWidget {
         return ListView.builder(
           itemCount: products.length,
           itemBuilder: (context, index) {
-            final product =
-                products[index].data() as Map<String, dynamic>;
+            final product = products[index].data() as Map<String, dynamic>;
 
             return ProductFeedCard(
               userName: product['userName'] ?? "",

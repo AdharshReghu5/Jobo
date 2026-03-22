@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login_screen.dart';
 import 'package:jobo/screens/edit_profile_screen.dart';
+import 'package:jobo/screens/create_job_post.dart';
+import 'post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,13 +17,158 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Future<DocumentSnapshot> getUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
-
     return FirebaseFirestore.instance.collection("users").doc(user!.uid).get();
   }
 
-  // 🔥 REFRESH FUNCTION
   void refresh() {
     setState(() {});
+  }
+
+  // 🔥 POST COUNT
+  Widget postCountWidget() {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('jobs').snapshots(),
+      builder: (context, jobSnap) {
+        if (!jobSnap.hasData) {
+          return const ProfileStat(count: "0", label: "Posts");
+        }
+
+        int jobCount = jobSnap.data!.docs
+            .where((doc) => doc['userId'] == uid)
+            .length;
+
+        return StreamBuilder(
+          stream: FirebaseFirestore.instance.collection('products').snapshots(),
+          builder: (context, productSnap) {
+            if (!productSnap.hasData) {
+              return ProfileStat(count: "$jobCount", label: "Posts");
+            }
+
+            int productCount = productSnap.data!.docs
+                .where((doc) => doc['userId'] == uid)
+                .length;
+
+            return ProfileStat(
+              count: "${jobCount + productCount}",
+              label: "Posts",
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 🔥 USER POSTS GRID
+  Widget buildUserPosts() {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('jobs').snapshots(),
+      builder: (context, jobSnap) {
+        if (!jobSnap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var jobPosts = jobSnap.data!.docs
+            .where((doc) => doc['userId'] == uid)
+            .toList();
+
+        return StreamBuilder(
+          stream: FirebaseFirestore.instance.collection('products').snapshots(),
+          builder: (context, productSnap) {
+            if (!productSnap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            var productPosts = productSnap.data!.docs
+                .where((doc) => doc['userId'] == uid)
+                .toList();
+
+            var allPosts = [...jobPosts, ...productPosts];
+
+            // ❌ NO POSTS
+            if (allPosts.isEmpty) {
+              return SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.photo_camera,
+                        size: 70,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "No Posts Yet",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 20),
+
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateJobPost(),
+                            ),
+                          );
+                          refresh();
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text("Create Post"),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // ✅ GRID
+            return GridView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: allPosts.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
+              ),
+              itemBuilder: (context, index) {
+                var doc = allPosts[index];
+                var post = doc.data() as Map<String, dynamic>;
+
+                String imageUrl = post['imageUrl'] ?? "";
+
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostDetailScreen(
+                          postId: doc.id,
+                          postData: post,
+                          collection: post.containsKey('productName')
+                              ? 'products'
+                              : 'jobs',
+                        ),
+                      ),
+                    );
+                  },
+                  child: imageUrl.isEmpty
+                      ? Container(color: Colors.grey)
+                      : Image.network(imageUrl, fit: BoxFit.cover),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -32,42 +179,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
-        title: FutureBuilder<DocumentSnapshot>(
-          future: getUserData(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Text("...");
-            }
-
-            String username = snapshot.data!['username'] ?? "";
-
-            return Text(
-              username.isEmpty ? "profile" : username,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
-            );
-          },
-        ),
-
+        title: const Text("Profile"),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
-
             onSelected: (value) async {
-              // 🔥 EDIT PROFILE FROM MENU
               if (value == "edit") {
-                final updated = await Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                 );
-
-                if (updated == true) {
-                  refresh();
-                }
-              }
-              // 🔥 LOGOUT
-              else if (value == "logout") {
+                refresh();
+              } else if (value == "logout") {
                 await FirebaseAuth.instance.signOut();
-
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -75,10 +199,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }
             },
-
             itemBuilder: (context) => [
               const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
-              const PopupMenuItem(value: "settings", child: Text("Settings")),
               const PopupMenuDivider(),
               const PopupMenuItem(
                 value: "logout",
@@ -89,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
 
-      body: FutureBuilder<DocumentSnapshot>(
+      body: FutureBuilder(
         future: getUserData(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -97,8 +219,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
 
           var data = snapshot.data!;
-
-          String username = data['username'] ?? "";
           String name = data['name'] ?? "";
           String bio = data['bio'] ?? "";
           String imageUrl = data['profileImage'] ?? "";
@@ -109,15 +229,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 const SizedBox(height: 20),
 
-                // 🔥 PROFILE ROW
+                // PROFILE ROW
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 45,
-                        backgroundColor: theme.dividerColor,
                         backgroundImage: imageUrl.isNotEmpty
                             ? NetworkImage(imageUrl)
                             : null,
@@ -125,16 +243,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? const Icon(Icons.person, size: 40)
                             : null,
                       ),
-
                       const SizedBox(width: 25),
 
-                      const Expanded(
+                      Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            ProfileStat(count: "0", label: "Posts"),
-                            ProfileStat(count: "0", label: "Followers"),
-                            ProfileStat(count: "0", label: "Following"),
+                            postCountWidget(),
+                            const ProfileStat(count: "0", label: "Followers"),
+                            const ProfileStat(count: "0", label: "Following"),
                           ],
                         ),
                       ),
@@ -144,10 +261,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 16),
 
-                // 🔥 NAME + BIO
+                // NAME + BIO (username removed)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -159,20 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: Colors.white,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
-                      // 🔥 USERNAME (optional nice UI)
-                      Text(
-                        "@$username",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
                       if (bio.isNotEmpty)
                         Text(
                           bio,
@@ -184,33 +287,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 12),
 
-                // 🔥 EDIT PROFILE BUTTON
+                // 🔥 EDIT BUTTON (Instagram style)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-
                   child: SizedBox(
                     width: double.infinity,
                     height: 36,
-
                     child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF3797EF)),
-                        foregroundColor: const Color(0xFF3797EF),
-                      ),
-
                       onPressed: () async {
-                        final updated = await Navigator.push(
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const EditProfileScreen(),
                           ),
                         );
-
-                        if (updated == true) {
-                          refresh();
-                        }
+                        refresh();
                       },
-
                       child: const Text("Edit Profile"),
                     ),
                   ),
@@ -220,30 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Divider(color: theme.dividerColor),
 
-                // 🔥 GRID
-                GridView.builder(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-
-                  itemCount: 12,
-
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 2,
-                    mainAxisSpacing: 2,
-                  ),
-
-                  itemBuilder: (context, index) {
-                    return Container(
-                      color: const Color(0xFF1E1E1E),
-                      child: const Icon(
-                        Icons.image_outlined,
-                        color: Color(0xFFA8A8A8),
-                      ),
-                    );
-                  },
-                ),
+                buildUserPosts(),
               ],
             ),
           );
@@ -253,6 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+// 🔥 STAT
 class ProfileStat extends StatelessWidget {
   final String count;
   final String label;
