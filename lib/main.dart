@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:jobo/screens/login_screen.dart';
 import 'package:jobo/screens/setup_profile_screen.dart';
 import 'package:jobo/screens/main_screen.dart';
+import 'package:jobo/screens/admin_dashboard.dart';
 import 'package:jobo/firebase_options.dart';
 
 void main() async {
@@ -65,6 +66,9 @@ class AuthCheck extends StatelessWidget {
           return const LoginScreen();
         }
         var user = FirebaseAuth.instance.currentUser;
+        if (user?.email == "adminnn12345@gmail.com") {
+          return const AdminDashboardScreen();
+        }
         return FutureBuilder(
           future: FirebaseFirestore.instance
               .collection("users")

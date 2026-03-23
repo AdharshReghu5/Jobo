@@ -36,6 +36,7 @@ class ProductsFeed extends StatelessWidget {
               description: product['description'] ?? "",
               imageUrl: product['imageUrl'] ?? "",
               phone: product['phone'] ?? "",
+              location: product['location'] ?? "",
             );
           },
         );

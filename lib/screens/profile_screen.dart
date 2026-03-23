@@ -193,10 +193,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   String? value = await showMenu(
                     context: context,
                     position: const RelativeRect.fromLTRB(100, 80, 0, 0),
-                    items: const [
-                      PopupMenuItem(value: "admin", child: Text("Admin Dashboard")),
-                      PopupMenuItem(value: "edit", child: Text("Edit Profile")),
-                      PopupMenuItem(value: "logout", child: Text("Logout")),
+                    items: [
+                      if (FirebaseAuth.instance.currentUser?.email ==
+                          "adminnn12345@gmail.com")
+                        const PopupMenuItem(
+                            value: "admin", child: Text("Admin Dashboard")),
+                      const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
+                      const PopupMenuItem(value: "logout", child: Text("Logout")),
                     ],
                   );
 

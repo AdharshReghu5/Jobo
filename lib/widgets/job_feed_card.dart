@@ -33,6 +33,20 @@ class JobFeedCard extends StatelessWidget {
     await launchUrl(url);
   }
 
+  void openMaps() async {
+    Uri url;
+    if (location.startsWith("http://") || location.startsWith("https://")) {
+      url = Uri.parse(location);
+    } else {
+      url = Uri.parse(
+          "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}");
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -93,6 +107,11 @@ class JobFeedCard extends StatelessWidget {
                 onPressed: call,
                 icon: const Icon(Icons.call),
               ),
+
+              IconButton(
+                onPressed: openMaps,
+                icon: const Icon(Icons.location_on),
+              ),
             ],
           ),
         ),
@@ -114,7 +133,16 @@ class JobFeedCard extends StatelessWidget {
         // 📍 LOCATION + 💰 SALARY
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text("📍 $location"),
+          child: GestureDetector(
+            onTap: openMaps,
+            child: Text(
+              "📍 $location",
+              style: const TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ),
 
         Padding(

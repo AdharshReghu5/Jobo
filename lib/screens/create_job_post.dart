@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -75,6 +76,23 @@ class _CreateJobPostState extends State<CreateJobPost> {
     );
   }
 
+  void openMapsPreview() async {
+    final location = locationController.text.trim();
+    if (location.isEmpty) return;
+
+    Uri url;
+    if (location.startsWith("http://") || location.startsWith("https://")) {
+      url = Uri.parse(location);
+    } else {
+      url = Uri.parse(
+          "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}");
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -127,9 +145,22 @@ class _CreateJobPostState extends State<CreateJobPost> {
             const SizedBox(height: 12),
 
             // 📍 LOCATION
-            TextField(
-              controller: locationController,
-              decoration: inputStyle(context, "Location"),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: locationController,
+                    decoration: inputStyle(
+                        context, "Location URL (Google Maps Link)"),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: openMapsPreview,
+                  icon: const Icon(Icons.map, color: Colors.blue),
+                  tooltip: "See on Map",
+                ),
+              ],
             ),
 
             const SizedBox(height: 12),

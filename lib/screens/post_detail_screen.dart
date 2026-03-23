@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PostDetailScreen extends StatelessWidget {
   final String postId;
@@ -13,6 +14,21 @@ class PostDetailScreen extends StatelessWidget {
     required this.collection,
   });
 
+  void openMaps(String location) async {
+    if (location.isEmpty) return;
+    Uri url;
+    if (location.startsWith("http://") || location.startsWith("https://")) {
+      url = Uri.parse(location);
+    } else {
+      url = Uri.parse(
+          "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}");
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String imageUrl = postData['imageUrl'] ?? "";
@@ -20,6 +36,7 @@ class PostDetailScreen extends StatelessWidget {
     String title = postData['productName'] ?? postData['jobTitle'] ?? "Post";
     String userName = postData['userName'] ?? "User";
     String userImage = postData['userProfileImage'] ?? "";
+    String location = postData['location'] ?? "";
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -85,7 +102,7 @@ class PostDetailScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
-                children: const [
+                children: [
                   Icon(Icons.favorite_border, color: Colors.white, size: 28),
                   SizedBox(width: 18),
                   Icon(
@@ -95,9 +112,33 @@ class PostDetailScreen extends StatelessWidget {
                   ),
                   SizedBox(width: 18),
                   Icon(Icons.call, color: Colors.white, size: 26),
+                  SizedBox(width: 18),
+                  IconButton(
+                    onPressed: () => openMaps(location),
+                    icon: const Icon(Icons.location_on,
+                        color: Colors.white, size: 28),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            if (location.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: GestureDetector(
+                  onTap: () => openMaps(location),
+                  child: Text(
+                    "📍 $location",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),

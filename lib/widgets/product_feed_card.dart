@@ -9,6 +9,7 @@ class ProductFeedCard extends StatelessWidget {
   final String description;
   final String imageUrl;
   final String phone;
+  final String location;
 
   const ProductFeedCard({
     super.key,
@@ -19,6 +20,7 @@ class ProductFeedCard extends StatelessWidget {
     required this.description,
     required this.imageUrl,
     required this.phone,
+    required this.location,
   });
 
   void call() async {
@@ -29,6 +31,20 @@ class ProductFeedCard extends StatelessWidget {
   void whatsapp() async {
     final Uri url = Uri.parse("https://wa.me/$phone");
     await launchUrl(url);
+  }
+
+  void openMaps() async {
+    Uri url;
+    if (location.startsWith("http://") || location.startsWith("https://")) {
+      url = Uri.parse(location);
+    } else {
+      url = Uri.parse(
+          "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}");
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -92,6 +108,11 @@ class ProductFeedCard extends StatelessWidget {
                 onPressed: call,
                 icon: const Icon(Icons.call),
               ),
+
+              IconButton(
+                onPressed: openMaps,
+                icon: const Icon(Icons.location_on),
+              ),
             ],
           ),
         ),
@@ -128,6 +149,22 @@ class ProductFeedCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(description),
         ),
+
+        if (location.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: GestureDetector(
+              onTap: openMaps,
+              child: Text(
+                "📍 $location",
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
 
         const SizedBox(height: 15),
         Divider(color: Colors.grey[800]),
