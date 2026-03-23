@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class JobFeedCard extends StatelessWidget {
+<<<<<<< HEAD
   final String userName;
   final String profileImage;
   final String jobTitle;
@@ -21,6 +22,24 @@ class JobFeedCard extends StatelessWidget {
     required this.description,
     required this.imageUrl,
     required this.phone,
+=======
+
+  final String company;
+  final String salary;
+  final String description;
+  final String image;
+  final String phone;
+  final VoidCallback? onDelete;
+
+  const JobFeedCard({
+    super.key,
+    required this.company,
+    required this.salary,
+    required this.description,
+    required this.image,
+    required this.phone,
+    this.onDelete,
+>>>>>>> 9990131 (hi)
   });
 
   void call() async {
@@ -35,15 +54,24 @@ class JobFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9990131 (hi)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
 
+<<<<<<< HEAD
         // 👤 HEADER
+=======
+        // HEADER
+>>>>>>> 9990131 (hi)
         Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
+<<<<<<< HEAD
               CircleAvatar(
                 radius: 18,
                 backgroundImage:
@@ -57,16 +85,39 @@ class JobFeedCard extends StatelessWidget {
               Text(
                 userName,
                 style: const TextStyle(
+=======
+
+              const CircleAvatar(radius: 18),
+              const SizedBox(width: 10),
+
+              Text(
+                company,
+                style: const TextStyle(
+                  color: Colors.white,
+>>>>>>> 9990131 (hi)
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
               const Spacer(),
+<<<<<<< HEAD
               const Icon(Icons.more_vert),
+=======
+
+              if (onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: onDelete,
+                )
+              else
+                const Icon(Icons.more_vert, color: Colors.white)
+
+>>>>>>> 9990131 (hi)
             ],
           ),
         ),
 
+<<<<<<< HEAD
         // 🖼 IMAGE (OPTIONAL)
         if (imageUrl.isNotEmpty)
           AspectRatio(
@@ -78,26 +129,51 @@ class JobFeedCard extends StatelessWidget {
             ),
           ),
         // ⚡ ACTIONS
+=======
+        // IMAGE
+        Image.network(
+          image,
+          height: 250,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
+
+        // ACTIONS
+>>>>>>> 9990131 (hi)
         Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
+<<<<<<< HEAD
               const Icon(Icons.favorite_border),
+=======
+
+              const Icon(Icons.favorite_border, color: Colors.white),
+>>>>>>> 9990131 (hi)
               const SizedBox(width: 20),
 
               IconButton(
                 onPressed: whatsapp,
+<<<<<<< HEAD
                 icon: const Icon(Icons.message),
+=======
+                icon: const Icon(Icons.message, color: Colors.white),
+>>>>>>> 9990131 (hi)
               ),
 
               IconButton(
                 onPressed: call,
+<<<<<<< HEAD
                 icon: const Icon(Icons.call),
+=======
+                icon: const Icon(Icons.call, color: Colors.white),
+>>>>>>> 9990131 (hi)
               ),
             ],
           ),
         ),
 
+<<<<<<< HEAD
         // 🧰 JOB TITLE
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -106,12 +182,24 @@ class JobFeedCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+=======
+        // SALARY
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            salary,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+>>>>>>> 9990131 (hi)
             ),
           ),
         ),
 
         const SizedBox(height: 5),
 
+<<<<<<< HEAD
         // 📍 LOCATION + 💰 SALARY
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -134,6 +222,17 @@ class JobFeedCard extends StatelessWidget {
           child: Text(description),
         ),
 
+=======
+        // DESCRIPTION
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            description,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
+
+>>>>>>> 9990131 (hi)
         const SizedBox(height: 15),
         Divider(color: Colors.grey[800]),
       ],
