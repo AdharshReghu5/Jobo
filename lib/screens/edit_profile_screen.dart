@@ -20,7 +20,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   File? image;
   String imageUrl = "";
-
   bool loading = true;
 
   @override
@@ -38,32 +37,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  // 🔥 LOAD USER DATA
   Future<void> loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
-
     final doc = await FirebaseFirestore.instance
         .collection("users")
         .doc(user!.uid)
         .get();
 
-    final data = doc.data()!;
+    if (doc.exists) {
+      final data = doc.data()!;
+      username.text = data['username'] ?? "";
+      name.text = data['name'] ?? "";
+      bio.text = data['bio'] ?? "";
+      phone.text = data['phone'] ?? "";
+      imageUrl = data['profileImage'] ?? "";
+    }
 
-    username.text = data['username'] ?? "";
-    name.text = data['name'] ?? "";
-    bio.text = data['bio'] ?? "";
-    phone.text = data['phone'] ?? "";
-    imageUrl = data['profileImage'] ?? "";
-
-    setState(() {
-      loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
   }
 
-  // 📸 PICK IMAGE
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-
     if (picked != null) {
       setState(() {
         image = File(picked.path);
@@ -71,54 +69,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // ☁️ UPLOAD IMAGE
   Future<String> uploadImage(String uid) async {
     if (image == null) return imageUrl;
-
     final ref = FirebaseStorage.instance.ref().child("profile_images/$uid.jpg");
-
     await ref.putFile(image!);
     return await ref.getDownloadURL();
   }
 
-  // 📱 PHONE VALIDATION
   bool isValidPhone(String phone) {
     return RegExp(r'^[0-9]{10}$').hasMatch(phone);
   }
 
-  // 🔥 FIXED USERNAME CHECK (CASE SAFE)
   Future<bool> isUsernameTaken(String newUsername, String uid) async {
     var result = await FirebaseFirestore.instance.collection("users").get();
-
     String checkName = newUsername.toLowerCase();
 
     for (var doc in result.docs) {
       var data = doc.data();
-
       String existing = (data['username'] ?? "").toString().toLowerCase();
-
       if (existing == checkName && doc.id != uid) {
         return true;
       }
     }
-
     return false;
   }
 
-  // 💾 SAVE PROFILE
   Future<void> saveProfile() async {
     String newUsername = username.text.trim().toLowerCase();
-
     if (newUsername.isEmpty) {
       showMessage("Username required");
       return;
     }
-
     if (name.text.trim().isEmpty) {
       showMessage("Name required");
       return;
     }
-
     if (!isValidPhone(phone.text.trim())) {
       showMessage("Enter valid phone number");
       return;
@@ -126,40 +111,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       setState(() => loading = true);
-
       final user = FirebaseAuth.instance.currentUser;
-
-      // 🔥 CHECK USERNAME
       bool taken = await isUsernameTaken(newUsername, user!.uid);
 
       if (taken) {
-        setState(() => loading = false);
-        showMessage("Username already taken");
+        if (mounted) {
+          setState(() => loading = false);
+          showMessage("Username already taken");
+        }
         return;
       }
 
       String newImageUrl = await uploadImage(user.uid);
-
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
           .update({
-            "username": newUsername,
-            "name": name.text.trim(),
-            "bio": bio.text.trim(),
-            "phone": phone.text.trim(),
-            "profileImage": newImageUrl,
-          });
+        "username": newUsername,
+        "name": name.text.trim(),
+        "bio": bio.text.trim(),
+        "phone": phone.text.trim(),
+        "profileImage": newImageUrl,
+      });
 
-      Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      showMessage("Update failed");
+      if (mounted) {
+        showMessage("Update failed");
+      }
     } finally {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
-  // 🔔 MESSAGE
   void showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
@@ -182,7 +170,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFF080808),
-
       appBar: AppBar(
         title: const Text("Edit Profile"),
         actions: [
@@ -192,7 +179,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
@@ -200,7 +186,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // PROFILE IMAGE
                     GestureDetector(
                       onTap: pickImage,
                       child: CircleAvatar(
@@ -209,17 +194,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         backgroundImage: image != null
                             ? FileImage(image!)
                             : (imageUrl.isNotEmpty
-                                      ? NetworkImage(imageUrl)
-                                      : null)
-                                  as ImageProvider?,
+                                ? NetworkImage(imageUrl)
+                                : null) as ImageProvider?,
                         child: (image == null && imageUrl.isEmpty)
                             ? const Icon(Icons.person, size: 40)
                             : null,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     TextButton(
                       onPressed: pickImage,
                       child: const Text(
@@ -227,41 +209,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         style: TextStyle(color: Colors.blue),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     TextField(
                       controller: username,
                       style: const TextStyle(color: Colors.white),
                       decoration: inputStyle("Username"),
                     ),
-
                     const SizedBox(height: 15),
-
                     TextField(
                       controller: name,
                       style: const TextStyle(color: Colors.white),
                       decoration: inputStyle("Name"),
                     ),
-
                     const SizedBox(height: 15),
-
                     TextField(
                       controller: phone,
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: Colors.white),
                       decoration: inputStyle("Phone Number"),
                     ),
-
                     const SizedBox(height: 15),
-
                     TextField(
                       controller: bio,
                       maxLines: 3,
                       style: const TextStyle(color: Colors.white),
                       decoration: inputStyle("Bio"),
                     ),
-
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -270,3 +243,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
+

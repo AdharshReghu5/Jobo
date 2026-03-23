@@ -29,39 +29,38 @@ class SearchScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          SearchResult("Nived", "Entrepreneur"),
-          SearchResult("Shimna", "Photographer"),   
+          searchResult("Nived", "Entrepreneur"),
+          searchResult("Shimna", "Photographer"),
         ],
-      )
+      ),
     );
   }
-  Widget SearchResult(String name, String profession) {
-  return Column(
-    children: [
-      ListTile(
-        leading: const CircleAvatar(radius: 25),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        subtitle: Text(
-          profession,
-          style: const TextStyle(
-            color: Color.fromARGB(255, 155, 155, 155),
-            fontSize: 14,
+
+  Widget searchResult(String name, String profession) {
+    return Column(
+      children: [
+        ListTile(
+          leading: const CircleAvatar(radius: 25),
+          title: Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
+          subtitle: Text(
+            profession,
+            style: const TextStyle(
+              color: Color.fromARGB(255, 155, 155, 155),
+              fontSize: 14,
+            ),
+          ),
+          trailing: const Icon(Icons.close, size: 20),
         ),
-        trailing: const Icon(Icons.close, size: 20),
-      ),
-
-      // 👇 Divider below the ListTile
-      Divider(
-        color: Colors.grey[800],
-        indent: 72,     // starts after avatar
-        endIndent: 12,
-      ),
-    ],
-  );
+        Divider(
+          color: Colors.grey[800],
+          indent: 72,
+          endIndent: 12,
+        ),
+      ],
+    );
+  }
 }
 
-}

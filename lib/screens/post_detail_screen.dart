@@ -18,17 +18,14 @@ class PostDetailScreen extends StatelessWidget {
     String imageUrl = postData['imageUrl'] ?? "";
     String description = postData['description'] ?? "";
     String title = postData['productName'] ?? postData['jobTitle'] ?? "Post";
-
     String userName = postData['userName'] ?? "User";
     String userImage = postData['userProfileImage'] ?? "";
 
     return Scaffold(
       backgroundColor: Colors.black,
-
       body: SafeArea(
         child: ListView(
           children: [
-            // 🔥 TOP USER BAR (LIKE INSTAGRAM)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
@@ -42,9 +39,7 @@ class PostDetailScreen extends StatelessWidget {
                         ? const Icon(Icons.person, color: Colors.white)
                         : null,
                   ),
-
                   const SizedBox(width: 10),
-
                   Text(
                     userName,
                     style: const TextStyle(
@@ -53,10 +48,7 @@ class PostDetailScreen extends StatelessWidget {
                       fontSize: 16,
                     ),
                   ),
-
                   const Spacer(),
-
-                  // 🔥 THREE DOT MENU
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, color: Colors.white),
                     onSelected: (value) async {
@@ -65,8 +57,9 @@ class PostDetailScreen extends StatelessWidget {
                             .collection(collection)
                             .doc(postId)
                             .delete();
-
-                        Navigator.pop(context);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       }
                     },
                     itemBuilder: (context) => const [
@@ -82,18 +75,13 @@ class PostDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
-            // 🔥 POST IMAGE
             if (imageUrl.isNotEmpty)
               Image.network(
                 imageUrl,
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
-
             const SizedBox(height: 10),
-
-            // 🔥 ICON ROW
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -110,10 +98,7 @@ class PostDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // 🔥 TITLE
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
@@ -125,10 +110,7 @@ class PostDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 6),
-
-            // 🔥 DESCRIPTION
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
@@ -136,7 +118,6 @@ class PostDetailScreen extends StatelessWidget {
                 style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
             ),
-
             const SizedBox(height: 20),
           ],
         ),
@@ -144,3 +125,4 @@ class PostDetailScreen extends StatelessWidget {
     );
   }
 }
+

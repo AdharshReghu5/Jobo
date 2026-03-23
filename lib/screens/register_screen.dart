@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'email_verification_screen.dart';
+import 'package:jobo/screens/email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,14 +10,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
   bool loading = false;
 
   Future<void> register() async {
-
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter email & password")),
@@ -36,18 +33,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       await user.user!.sendEmailVerification();
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const EmailVerificationScreen(),
-        ),
-      );
-
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const EmailVerificationScreen(),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Registration failed")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Registration failed")));
+      }
     } finally {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -66,18 +68,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFF080808),
-
       body: Padding(
         padding: const EdgeInsets.all(24),
-
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-
           children: [
-
             const Text(
               "JOBO",
               style: TextStyle(
@@ -86,30 +83,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 color: Colors.white,
               ),
             ),
-
             const SizedBox(height: 40),
-
             TextField(
               controller: emailController,
               style: const TextStyle(color: Colors.white),
               decoration: inputStyle("Email"),
             ),
-
             const SizedBox(height: 15),
-
             TextField(
               controller: passwordController,
               obscureText: true,
               style: const TextStyle(color: Colors.white),
               decoration: inputStyle("Password"),
             ),
-
             const SizedBox(height: 20),
-
             SizedBox(
               width: double.infinity,
               height: 45,
-
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -125,4 +115,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-}
+}

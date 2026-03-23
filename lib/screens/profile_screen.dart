@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'login_screen.dart';
-import 'edit_profile_screen.dart';
-import 'create_job_post.dart';
-import 'post_detail_screen.dart';
+import 'package:jobo/screens/login_screen.dart';
+import 'package:jobo/screens/edit_profile_screen.dart';
+import 'package:jobo/screens/create_job_post.dart';
+import 'package:jobo/screens/post_detail_screen.dart';
+import 'package:jobo/screens/admin_dashboard.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -173,14 +173,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         var data = snapshot.data!.data() as Map<String, dynamic>;
 
         String name = data['name'] ?? "";
-        String username = data['username'] ?? ""; // 🔥 THIS IS NEW
+        String username = data['username'] ?? "";
         String bio = data['bio'] ?? "";
         String image = data['profileImage'] ?? "";
 
         return Scaffold(
           backgroundColor: Colors.black,
-
-          // 🔥 USERNAME AT TOP (FIXED)
           appBar: AppBar(
             backgroundColor: Colors.black,
             elevation: 0,
@@ -196,37 +194,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context: context,
                     position: const RelativeRect.fromLTRB(100, 80, 0, 0),
                     items: const [
+                      PopupMenuItem(value: "admin", child: Text("Admin Dashboard")),
                       PopupMenuItem(value: "edit", child: Text("Edit Profile")),
                       PopupMenuItem(value: "logout", child: Text("Logout")),
                     ],
                   );
 
-                  if (value == "edit") {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const EditProfileScreen(),
-                      ),
-                    );
+                  if (value == "admin") {
+                    if (mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminDashboardScreen(),
+                        ),
+                      );
+                    }
+                  } else if (value == "edit") {
+                    if (mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(),
+                        ),
+                      );
+                    }
                   } else if (value == "logout") {
                     await FirebaseAuth.instance.signOut();
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    }
                   }
                 },
               ),
             ],
           ),
-
           body: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -290,9 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -314,9 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SizedBox(
@@ -347,7 +353,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
                 const Divider(color: Colors.grey),
                 buildUserPosts(),
@@ -359,3 +364,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
