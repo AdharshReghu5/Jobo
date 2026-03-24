@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class JobFeedCard extends StatelessWidget {
   final String userName;
@@ -10,6 +12,7 @@ class JobFeedCard extends StatelessWidget {
   final String description;
   final String imageUrl;
   final String phone;
+  final String userId;
 
   const JobFeedCard({
     super.key,
@@ -21,6 +24,7 @@ class JobFeedCard extends StatelessWidget {
     required this.description,
     required this.imageUrl,
     required this.phone,
+    required this.userId,
   });
 
   void call() async {
@@ -44,6 +48,38 @@ class JobFeedCard extends StatelessWidget {
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void applyJob(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final currentUserName = userDoc.data()?['name'] ?? "Someone";
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        "toUserId": userId,
+        "fromUserId": currentUser.uid,
+        "fromUserName": currentUserName,
+        "postId": jobTitle, 
+        "postTitle": jobTitle,
+        "type": "apply",
+        "timestamp": FieldValue.serverTimestamp(),
+        "isRead": false,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Application sent!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
   }
 
@@ -161,7 +197,26 @@ class JobFeedCard extends StatelessWidget {
           child: Text(description),
         ),
 
-        const SizedBox(height: 15),
+        // 📝 APPLY BUTTON
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => applyJob(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text("Apply Now", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+
+        const SizedBox(height: 10),
         Divider(color: Colors.grey[800]),
       ],
     );

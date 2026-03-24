@@ -38,6 +38,7 @@ class JobsFeed extends StatelessWidget {
               description: job['description'] ?? "",
               imageUrl: job['imageUrl'] ?? "",
               phone: job['phone'] ?? "",
+              userId: job['userId'] ?? "",
             );
           },
         );

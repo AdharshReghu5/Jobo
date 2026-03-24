@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PostDetailScreen extends StatelessWidget {
@@ -7,7 +8,7 @@ class PostDetailScreen extends StatelessWidget {
   final Map<String, dynamic> postData;
   final String collection;
 
-  const PostDetailScreen({
+  PostDetailScreen({
     super.key,
     required this.postId,
     required this.postData,
@@ -113,18 +114,19 @@ class PostDetailScreen extends StatelessWidget {
                   SizedBox(width: 18),
                   Icon(Icons.call, color: Colors.white, size: 26),
                   SizedBox(width: 18),
-                  IconButton(
-                    onPressed: () => openMaps(location),
-                    icon: const Icon(Icons.location_on,
-                        color: Colors.white, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  if (collection != 'products')
+                    IconButton(
+                      onPressed: () => openMaps(location),
+                      icon: const Icon(Icons.location_on,
+                          color: Colors.white, size: 28),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            if (location.isNotEmpty)
+            if (location.isNotEmpty && collection != 'products')
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: GestureDetector(
@@ -159,7 +161,70 @@ class PostDetailScreen extends StatelessWidget {
                 style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 30),
+
+            // 🔥 ACTION BUTTON (APPLY/BUY)
+            Padding(
+              padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final currentUser = FirebaseAuth.instance.currentUser;
+                      if (currentUser == null) return;
+
+                      try {
+                        final userDoc = await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(currentUser.uid)
+                            .get();
+                        final currentUserName = userDoc.data()?['name'] ?? "Someone";
+
+                        final type = collection == 'jobs' ? 'apply' : 'buy';
+                        final title = postData['productName'] ?? postData['jobTitle'] ?? "Post";
+
+                        await FirebaseFirestore.instance.collection('notifications').add({
+                          "toUserId": postData['userId'] ?? "",
+                          "fromUserId": currentUser.uid,
+                          "fromUserName": currentUserName,
+                          "postId": title,
+                          "postTitle": title,
+                          "type": type,
+                          "timestamp": FieldValue.serverTimestamp(),
+                          "isRead": false,
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: Colors.green,
+                            content: Text("${type == 'apply' ? 'Application' : 'Purchase request'} sent successfully!"),
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error: $e")),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      collection == 'jobs' ? "Apply Now" : "Buy Now",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),

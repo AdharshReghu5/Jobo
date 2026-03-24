@@ -24,8 +24,6 @@ class _CreateProductPostState extends State<CreateProductPost> {
       TextEditingController();
   final TextEditingController descriptionController =
       TextEditingController();
-  final TextEditingController locationController =
-      TextEditingController();
 
   // 🖼 Pick Image
   Future pickImage() async {
@@ -79,22 +77,6 @@ class _CreateProductPostState extends State<CreateProductPost> {
     );
   }
 
-  void openMapsPreview() async {
-    final location = locationController.text.trim();
-    if (location.isEmpty) return;
-
-    Uri url;
-    if (location.startsWith("http://") || location.startsWith("https://")) {
-      url = Uri.parse(location);
-    } else {
-      url = Uri.parse(
-          "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}");
-    }
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,24 +147,6 @@ class _CreateProductPostState extends State<CreateProductPost> {
 
             const SizedBox(height: 12),
 
-            // 📍 LOCATION
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: locationController,
-                    decoration: inputStyle(
-                        context, "Location URL (Google Maps Link)"),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: openMapsPreview,
-                  icon: const Icon(Icons.map, color: Colors.blue),
-                  tooltip: "See on Map",
-                ),
-              ],
-            ),
 
             const SizedBox(height: 25),
 
@@ -200,8 +164,7 @@ class _CreateProductPostState extends State<CreateProductPost> {
 
                   if (productName.isEmpty ||
                       price.isEmpty ||
-                      description.isEmpty ||
-                      locationController.text.trim().isEmpty) {
+                      description.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text("Please fill all fields")),
@@ -252,7 +215,6 @@ class _CreateProductPostState extends State<CreateProductPost> {
                       "productName": productName,
                       "price": price,
                       "description": description,
-                      "location": locationController.text.trim(),
                       "imageUrl": imageUrl,
 
                       "createdAt":
@@ -271,7 +233,6 @@ class _CreateProductPostState extends State<CreateProductPost> {
                     productNameController.clear();
                     priceController.clear();
                     descriptionController.clear();
-                    locationController.clear();
 
                     setState(() {
                       image = null;
