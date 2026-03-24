@@ -158,212 +158,296 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: getUserData(),
+  Widget buildUserReviews() {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('reviews')
+          .where('toUserId', isEqualTo: uid)
+          .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(child: CircularProgressIndicator()),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40.0),
+              child: Text("No reviews yet", style: TextStyle(color: Colors.grey)),
+            ),
           );
         }
 
-        var data = snapshot.data!.data() as Map<String, dynamic>;
+        final reviews = snapshot.data!.docs;
 
-        String name = data['name'] ?? "";
-        String username = data['username'] ?? "";
-        String bio = data['bio'] ?? "";
-        String image = data['profileImage'] ?? "";
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: reviews.length,
+          itemBuilder: (context, index) {
+            final review = reviews[index].data() as Map<String, dynamic>;
+            final rating = review['rating'] as int? ?? 0;
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            elevation: 0,
-            title: Text(
-              username,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () async {
-                  String? value = await showMenu(
-                    context: context,
-                    position: const RelativeRect.fromLTRB(100, 80, 0, 0),
-                    items: [
-                      if (FirebaseAuth.instance.currentUser?.email ==
-                          "adminnn12345@gmail.com")
-                        const PopupMenuItem(
-                            value: "admin", child: Text("Admin Dashboard")),
-                      const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
-                      const PopupMenuItem(value: "logout", child: Text("Logout")),
-                    ],
+            return ListTile(
+              title: Row(
+                children: List.generate(5, (i) {
+                  return Icon(
+                    i < rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 16,
                   );
-
-                  if (value == "admin") {
-                    if (mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminDashboardScreen(),
-                        ),
-                      );
-                    }
-                  } else if (value == "edit") {
-                    if (mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(),
-                        ),
-                      );
-                    }
-                  } else if (value == "logout") {
-                    await FirebaseAuth.instance.signOut();
-                    if (mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  }
-                },
+                }),
               ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundImage: image.isNotEmpty
-                            ? NetworkImage(image)
-                            : null,
-                        child: image.isEmpty
-                            ? const Icon(Icons.person, size: 40)
-                            : null,
-                      ),
-                      const SizedBox(width: 25),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
-                              children: [
-                                postCountWidget(),
-                                const Text(
-                                  "Posts",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                            const Column(
-                              children: [
-                                Text(
-                                  "0",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  "Followers",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                            const Column(
-                              children: [
-                                Text(
-                                  "0",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  "Following",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    review['review'] ?? "",
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (bio.isNotEmpty)
-                        Text(
-                          bio,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    "For: ${review['postTitle'] ?? "Job"}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 38,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.blue, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      onPressed: () {
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: FutureBuilder<DocumentSnapshot>(
+        future: getUserData(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Scaffold(
+              backgroundColor: Colors.black,
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          var data = snapshot.data!.data() as Map<String, dynamic>;
+
+          String name = data['name'] ?? "";
+          String username = data['username'] ?? "";
+          String bio = data['bio'] ?? "";
+          String image = data['profileImage'] ?? "";
+
+          return Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              elevation: 0,
+              title: Text(
+                username,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () async {
+                    String? value = await showMenu(
+                      context: context,
+                      position: const RelativeRect.fromLTRB(100, 80, 0, 0),
+                      items: [
+                        if (FirebaseAuth.instance.currentUser?.email ==
+                            "adminnn12345@gmail.com")
+                          const PopupMenuItem(
+                              value: "admin", child: Text("Admin Dashboard")),
+                        const PopupMenuItem(value: "edit", child: Text("Edit Profile")),
+                        const PopupMenuItem(value: "logout", child: Text("Logout")),
+                      ],
+                    );
+
+                    if (value == "admin") {
+                      if (mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminDashboardScreen(),
+                          ),
+                        );
+                      }
+                    } else if (value == "edit") {
+                      if (mounted) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const EditProfileScreen(),
                           ),
                         );
-                      },
-                      child: const Text(
-                        "Edit Profile",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
+                      }
+                    } else if (value == "logout") {
+                      await FirebaseAuth.instance.signOut();
+                      if (mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    }
+                  },
                 ),
-                const SizedBox(height: 20),
-                const Divider(color: Colors.grey),
-                buildUserPosts(),
               ],
             ),
-          ),
-        );
-      },
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 45,
+                              backgroundImage: image.isNotEmpty
+                                  ? NetworkImage(image)
+                                  : null,
+                              child: image.isEmpty
+                                  ? const Icon(Icons.person, size: 40)
+                                  : null,
+                            ),
+                            const SizedBox(width: 25),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Column(
+                                    children: [
+                                      postCountWidget(),
+                                      const Text(
+                                        "Posts",
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ],
+                                  ),
+                                  const Column(
+                                    children: [
+                                      Text(
+                                        "0",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        "Followers",
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ],
+                                  ),
+                                  const Column(
+                                    children: [
+                                      Text(
+                                        "0",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        "Following",
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (bio.isNotEmpty)
+                              Text(
+                                bio,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 38,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.blue, width: 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const EditProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "Edit Profile",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const TabBar(
+                        indicatorColor: Colors.blue,
+                        labelColor: Colors.blue,
+                        unselectedLabelColor: Colors.grey,
+                        tabs: [
+                          Tab(icon: Icon(Icons.grid_on)),
+                          Tab(icon: Icon(Icons.star_outline)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              body: TabBarView(
+                children: [
+                  SingleChildScrollView(child: buildUserPosts()),
+                  SingleChildScrollView(child: buildUserReviews()),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

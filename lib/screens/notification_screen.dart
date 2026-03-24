@@ -25,6 +25,133 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _handleApplicationDecision(
+      String notificationId, Map<String, dynamic> data, String status) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      // 1. Update current notification
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'status': status});
+
+      // 2. Send back a notification to the applicant
+      final message = status == 'accepted'
+          ? "Your application for \"${data['postTitle']}\" has been accepted!"
+          : "Your application for \"${data['postTitle']}\" was not accepted.";
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        "toUserId": data['fromUserId'], 
+        "fromUserId": currentUser.uid,
+        "fromUserName": "System",
+        "postTitle": data['postTitle'],
+        "type": status == 'accepted' ? 'apply_accepted' : 'apply_declined',
+        "message": message,
+        "timestamp": FieldValue.serverTimestamp(),
+        "isRead": false,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Application $status")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    }
+  }
+
+  void _showReviewDialog(String targetUserId, String postTitle) {
+    int selectedRating = 5;
+    final TextEditingController reviewController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("Leave a Review", style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("How was your experience with \"$postTitle\"?",
+                  style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 30,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        selectedRating = index + 1;
+                      });
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: reviewController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "Write your review...",
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.black,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final currentUser = FirebaseAuth.instance.currentUser;
+                if (currentUser == null) return;
+
+                await FirebaseFirestore.instance.collection('reviews').add({
+                  "fromUserId": currentUser.uid,
+                  "toUserId": targetUserId,
+                  "postTitle": postTitle,
+                  "rating": selectedRating,
+                  "review": reviewController.text,
+                  "timestamp": FieldValue.serverTimestamp(),
+                });
+
+                if (mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Review submitted!")),
+                  );
+                }
+              },
+              child: const Text("Submit"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -83,29 +210,46 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     itemBuilder: (context, index) {
                       final doc = docs[index];
                       final data = doc.data() as Map<String, dynamic>;
+                      final notificationId = doc.id;
                       final timestamp = data['timestamp'] as Timestamp?;
                       final timeStr = timestamp != null
                           ? DateFormat('MMM d, h:mm a')
                               .format(timestamp.toDate())
                           : "";
 
-                      String message = "";
+                      String message = data['message'] ?? "";
                       IconData icon;
                       Color iconColor;
+                      String status = data['status'] ?? "";
 
                       if (data['type'] == 'apply') {
-                        message =
-                            "${data['fromUserName']} applied for your job \"${data['postTitle']}\"";
+                        message = message.isEmpty
+                            ? "${data['fromUserName']} applied for your job \"${data['postTitle']}\""
+                            : message;
                         icon = Icons.work_outline;
                         iconColor = Colors.blue;
+                      } else if (data['type'] == 'apply_accepted') {
+                        message = message.isEmpty
+                            ? "Your application for \"${data['postTitle']}\" was accepted!"
+                            : message;
+                        icon = Icons.check_circle_outline;
+                        iconColor = Colors.green;
+                      } else if (data['type'] == 'apply_declined') {
+                        message = message.isEmpty
+                            ? "Your application for \"${data['postTitle']}\" was declined."
+                            : message;
+                        icon = Icons.cancel_outlined;
+                        iconColor = Colors.red;
                       } else {
-                        message =
-                            "${data['fromUserName']} wants to buy your product \"${data['postTitle']}\"";
+                        message = message.isEmpty
+                            ? "${data['fromUserName']} wants to buy your product \"${data['postTitle']}\""
+                            : message;
                         icon = Icons.shopping_bag_outlined;
                         iconColor = Colors.green;
                       }
 
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ListTile(
                             leading: CircleAvatar(
@@ -122,10 +266,69 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               style: const TextStyle(
                                   color: Colors.grey, fontSize: 12),
                             ),
-                            onTap: () {
-                              // Mark as read or navigate? For now just UI.
-                            },
                           ),
+                          
+                          // Action buttons for job posters
+                          if (data['type'] == 'apply' && status.isEmpty)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 70, bottom: 10),
+                              child: Row(
+                                children: [
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12)),
+                                    onPressed: () => _handleApplicationDecision(
+                                        notificationId, data, 'accepted'),
+                                    icon: const Icon(Icons.check, size: 16),
+                                    label: const Text("Accept"),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12)),
+                                    onPressed: () => _handleApplicationDecision(
+                                        notificationId, data, 'declined'),
+                                    icon: const Icon(Icons.close, size: 16),
+                                    label: const Text("Decline"),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                          if (status == 'accepted' && data['type'] == 'apply')
+                             const Padding(
+                              padding: EdgeInsets.only(left: 70, bottom: 10),
+                              child: Text("Status: Accepted", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                            ),
+                            
+                          if (status == 'declined' && data['type'] == 'apply')
+                             const Padding(
+                              padding: EdgeInsets.only(left: 70, bottom: 10),
+                              child: Text("Status: Declined", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            ),
+
+                          // Review button for accepted applicants
+                          if (data['type'] == 'apply_accepted')
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 70, bottom: 10),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.amber,
+                                    foregroundColor: Colors.black),
+                                onPressed: () => _showReviewDialog(
+                                    data['fromUserId'], data['postTitle']),
+                                icon: const Icon(Icons.star, size: 16),
+                                label: const Text("Leave Review",
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            
                           Divider(color: Colors.grey[900], indent: 70),
                         ],
                       );
